@@ -1,39 +1,60 @@
 ##### Alternative analysis following LSVFS
-#Visualizing data
+## Visualizing data
 require("ggplot2")      # Powerful and aesthetic plotting system for R
 require("gridExtra")    # Arrange multiple ggplots in same figure (multi-panels)
 require("scales")       #
 require("RColorBrewer") # creates nice color schemes
 require("corrplot")     # A graphical display of a correlation matrix between all combinations of variables
-#Statistical analysis
+## Statistical analysis
 require("stats")        # Lots of stats stuff
-#Data management
+## Data management
 require("plyr")         # Allows you t split data structure into groups (pollutant type, location, etc.) and apply function on each group
 require("dplyr")
 require("zoo")          # Helps streamline data if you have irregular time series
 require("reshape2")     # Convert data with "wide" columns to "long" columns
 require("lubridate")    # Date and time data made easy! See reference PDF in Google Drive
 require("data.table")
-require("xlsx")         # Reads and writes to xlsx file
-#Mapping tools
+require("TTR")
+#require("xlsx")        # creates errors # Reads and writes to xlsx file
+require("purrr")
+require("tidyr")
+require("fBasics")
+require("pls")
+## Mapping tools
 require("stringi")
 require("ggmap")        # Plotting of maps same as you would with ggplot2
 require("maptools")     # Read, write, and handle Shapefiles in R
 require("mapdata")      # Supplement to maps package
-TFC_RWH.1 <- read.csv("TFC_RWH.DEL.csv")
+
+## Read data file
+# Data file has previous manipulations
+TFC_RWH.1 <- read.csv("./Working/TFC_RWH.DEL.csv")
 ## View to confirm proper read
-View(TFC_RWH.1)
+#View(TFC_RWH.1)
+
+## rename columns
+colnames(TFC_RWH.1) <- c("date.time", 
+                         "rainfall", 
+                         "intensity",
+                         "Air.temp", 
+                         "Bottom.temp", 
+                         "Bottom.depth", 
+                         "Middle.temp", 
+                         "Middle.depth", 
+                         "Top.temp", 
+                         "Top.depth", 
+                         "event")
+# Confirm
+# View(TFC_RWH.1)
 
 ## Set date time fomat
-TFC_RWH.1$date.time <- as.POSIXct(TFC_RWH.1$date.time, format = "%m/%d/%y %H:%M", tz = "est")
+TFC_RWH.1$date.time <- mdy_hm(TFC_RWH.1$date.time, tz = "est")
+# Confirm class
+#class(TFC_RWH.1[,1])
 
-## Confirm
-class(TFC_RWH.1[,1])
-
-
-### Some Histograms
+## Some Histograms
 #hist(TFC_RWH.1$rainfall)
-### Need to alter if interested no in.temp
+## Need to alter if interested no in.temp
 #hist(TFC_RWH.1$in.temp)
 #median(TFC_RWH.1$in.temp)
 #median(TFC_RWH.1$in.temp, na.rm = TRUE)
@@ -43,16 +64,16 @@ class(TFC_RWH.1[,1])
 #shapiro.test(CBC_LSVFS.1$in.temp, na.rm = TRUE)
 #shapiro.test(CBC_LSVFS.1$in.temp)
 
-### rename columns
-colnames(TFC_RWH.1) <- c("date.time", "rainfall", "intensity", "Air.temp", "Bottom.temp", "Bottom.depth", "Middle.temp", "Middle.depth", "Top.temp", "Top.depth", "event")
-##Confirm
-#View(TFC_RWH.1)
+
 ###### Some monthyl stats
-TFC_air.monthly.stats <- group_by(TFC_RWH.1, month=floor_date(TFC_RWH.1$date.time, "month")) %>% summarise(Average.Temperature = mean(Air.temp, na.rm = TRUE),                                                                                     
-                                                                                                           Maximum.Temperature = max(Air.temp, na.rm = TRUE),
-                                                                                                           rain.sum = sum(rainfall, na.rm = TRUE))
+TFC_air.monthly.stats <- group_by(TFC_RWH.1, month=floor_date(TFC_RWH.1$date.time, "month")) %>% 
+  summarise(Average.Temperature = mean(Air.temp, na.rm = TRUE),                                                                                     
+            Maximum.Temperature = max(Air.temp, na.rm = TRUE),
+            rain.sum = sum(rainfall, na.rm = TRUE))
+
 ##### Confirm
 View(TFC_air.monthly.stats)
+
 ################ Seperate actions*************************
 TFC_RWH.1.1 <- read.csv("TFC_RWH.DEL.csv")
 ## View to confirm proper read
