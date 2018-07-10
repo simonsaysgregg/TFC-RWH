@@ -88,7 +88,82 @@ RWHsum <- RWHevents %>%
                                  avetopdepth = mean(Top.depth, na.rm = TRUE))})
 # View(RWHsum)
 
-## Mutate to provide additional hydrology analsis
+## Breaking events into pre and post 
+## subset to provide additional hydrology analsis
+RWH_event_pre1012 <- (RWHsum[-c(1),]) %>%
+  subset(Date <= "2017/10/12") 
+#View(RWH_event_pre1012)
+## subset to provide additional hydrology analsis
+RWH_event_post1012 <- (RWHsum[-c(1),]) %>%
+  subset(Date >= "2017/10/12") 
+#View(RWH_event_post1012)
+
+## Wilcoxon test
+# median bottom
+wilcox.test(RWH_event_pre1012$medbottemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# max bottom
+wilcox.test(RWH_event_pre1012$maxbottemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# median middle
+wilcox.test(RWH_event_pre1012$medmidtemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# max middle
+wilcox.test(RWH_event_pre1012$maxmidtemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# median top
+wilcox.test(RWH_event_pre1012$medtoptemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# max top
+wilcox.test(RWH_event_pre1012$maxtoptemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+
+## box plots of pre-1012
+# median data
+RWHpre1012med_box <- (RWH_event_pre1012) %>%
+  select(medbottemp,
+         medmidtemp,
+         medtoptemp) %>%
+  melt()
+#View(RWHpre1012med_box)
+# maximum data
+RWHpre1012max_box <- (RWH_event_pre1012) %>%
+  select(maxbottemp,
+         maxmidtemp,
+         maxtoptemp) %>%
+  melt()
+#View(RWHpre1012max_box)
+
+# plot median temps
+ggplot(data = RWHpre1012med_box)+
+  geom_boxplot(aes(x = variable, y = value))+
+  scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
+  scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
+  labs(x = "Temperature Location", y = "Temperature (°C)")
+
+
+# plot max temps
+ggplot(data = RWHpre1012max_box)+
+  geom_boxplot(aes(x = variable, y = value))+
+  scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
+  scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
+  labs(x = "Temperature Location", y = "Temperature (°C)")
+
+
+## Difference between measurement depths
+# Median
+# bottom and middle
+wilcox.test(RWH_event_pre1012$medbottemp, RWH_event_pre1012$medmidtemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# middle and top
+wilcox.test(RWH_event_pre1012$medmidtemp, RWH_event_pre1012$medtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# bottom and top
+wilcox.test(RWH_event_pre1012$medbottemp, RWH_event_pre1012$medtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+
+## Plot depth and rainfall
+
+
+
+
+
+
+
+
+
+## subset to provide additional hydrology analsis
 RWH_event_analysis <- (RWHsum) %>%
   subset(Accumulation >= 5.0) 
 #View(RWH_event_analysis)
