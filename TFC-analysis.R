@@ -154,8 +154,21 @@ wilcox.test(RWH_event_pre1012$medmidtemp, RWH_event_pre1012$medtoptemp, alternat
 wilcox.test(RWH_event_pre1012$medbottemp, RWH_event_pre1012$medtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
 
 ## Plot depth and rainfall
+tot.mon.plot <- (TFC_RWH.m) %>%
+  mutate(cumrain = cumsum(rainfall)) %>%
+  select(date.time,
+         Bottom.depth,
+         Middle.depth,
+         Top.depth,
+         cumrain) %>%
+  subset(date.time < "2017-09-08 " || date.time > "2017-09-08") %>%
+  melt(id = "date.time")
+# View(tot.mon.plot)
 
-
+# plot depths
+ggplot(data = tot.mon.plot)+
+  geom_line(aes(x = date.time, y = value, color = variable))+
+  labs(x = "Date", y = "Depth (cm)")
 
 
 
