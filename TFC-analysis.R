@@ -1,5 +1,5 @@
 ##### RE-Analysis post-1st review
-# The Free Clinics monitoring data
+# The Free Clinics Rain Water Harvester monitoring data
 ## Visualizing data
 require("ggplot2")      # Powerful and aesthetic plotting system for R
 require("gridExtra")    # Arrange multiple ggplots in same figure (multi-panels)
