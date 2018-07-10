@@ -161,7 +161,8 @@ tot.mon.plot <- (TFC_RWH.m) %>%
          Middle.depth,
          Top.depth,
          cumrain) %>%
-  subset(date.time < "2017-09-08 " || date.time > "2017-09-08") %>%
+  subset(date.time <= as.POSIXct("2017-09-08 16:00:00") | date.time >= as.POSIXct("2017-09-08 20:00:00")) %>%
+  subset(date.time <= as.POSIXct("2017-10-04 12:00:00") | date.time >= as.POSIXct("2017-10-04 18:00:00")) %>%
   melt(id = "date.time")
 # View(tot.mon.plot)
 
@@ -169,7 +170,6 @@ tot.mon.plot <- (TFC_RWH.m) %>%
 ggplot(data = tot.mon.plot)+
   geom_line(aes(x = date.time, y = value, color = variable))+
   labs(x = "Date", y = "Depth (cm)")
-
 
 
 
