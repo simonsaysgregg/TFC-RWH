@@ -231,7 +231,7 @@ cum.rain <- (cum.rain) %>%
 # plot depths
 ggplot()+
   geom_line(data = tot.mon.plot2, aes(x = date.time, y = value, color = variable))+
-  geom_line(data = cum.rain, aes(x = date.time, y = Rainfall/5))+
+  geom_line(data = cum.rain, aes(x = date.time, y = Rainfall/5, color = "Rainfall"))+
   labs(x = "Date", y = "Temperature (°C)")+
   theme(legend.position = "bottom", 
         legend.title = element_blank())+
@@ -239,28 +239,115 @@ ggplot()+
   scale_y_continuous(sec.axis = sec_axis(~.*5, name = "Rainfall (mm)"))
 
 
+# ## Plot September 21 event rainfall + depth
+# # Decided to omit this plot
+# plot912 <- (TFC_RWH.m) %>%
+#   select(date.time,
+#          Bottom.depth,
+#          Middle.depth,
+#          Top.depth) 
+# colnames(plot912) <- c("date.time",
+#                              "Bottom",
+#                              "Middle",
+#                              "Top")
+# # Prep plotting dataset
+# plot912 <- (plot912) %>%
+#   select(date.time,
+#          Bottom,
+#          Middle,
+#          Top) %>%
+#   subset(date.time >= as.POSIXct("2017-09-19 00:00:00") & date.time <= as.POSIXct("2017-09-23 00:00:00")) %>%
+#   melt(id = "date.time")
+# # View(plot912)
+# # Dataset just for rainfall
+# cum.rain <- (TFC_RWH.m) %>%
+#   select(date.time,
+#          rainfall) 
+# colnames(cum.rain) <- c("date.time",
+#                         "rainfall")
+# # Replace rainfall NAs with zero
+# cum.rain$rainfall <- (cum.rain$rainfall) %>%
+#   replace_na(0) 
+# cum.rain <- (cum.rain) %>%
+#   mutate(Rainfall = cumsum(rainfall))%>%
+#   subset(date.time >= as.POSIXct("2017-09-19 00:00:00") & date.time <= as.POSIXct("2017-09-23 00:00:00")) 
+# # plot depths
+# ggplot()+
+#   geom_line(data = plot912, aes(x = date.time, y = value, color = variable))+
+#   geom_line(data = cum.rain, aes(x = date.time, y = Rainfall*2.5, color = "Rainfall"))+
+#   labs(x = "Date", y = "Depth (cm)")+
+#   theme(legend.position = "bottom", 
+#         legend.title = element_blank())+
+#   scale_x_datetime(date_labels = "%m/%d", date_breaks = "1 days")+
+#   scale_y_continuous(sec.axis = sec_axis(~./2.5, name = "Rainfall (mm)"))
 
-## subset to provide additional hydrology analsis
-RWH_event_analysis <- (RWHsum) %>%
-  subset(Accumulation >= 5.0) 
-#View(RWH_event_analysis)
+## Plot temperature and rainfall
+max.temp.plot <- (TFC_RWH.m) %>%
+  select(date.time,
+         Air.temp,
+         Bottom.temp,
+         Middle.temp,
+         Top.temp) 
+colnames(max.temp.plot) <- c("date.time",
+                             "Air",
+                             "Bottom",
+                             "Middle",
+                             "Top")
+# Prep plotting dataset
+max.temp.plot <- (max.temp.plot) %>%
+  select(date.time,
+         Air,
+         Bottom,
+         Middle,
+         Top) %>%
+  subset(date.time >= as.POSIXct("2017-09-25 16:00:00") & date.time <= as.POSIXct("2017-10-07 20:00:00")) %>%
+  melt(id = "date.time")
+# View(max.temp.plot)
+# plot depths
+ggplot()+
+  geom_line(data = max.temp.plot, aes(x = date.time, y = value, color = variable))+
+  labs(x = "Date", y = "Temperature (°C)")+
+  theme(legend.position = "bottom", 
+        legend.title = element_blank())+
+  scale_x_datetime(date_labels = "%m/%d", date_breaks = "2 days")
 
-# ## Summarise rainfall info
-# Rainfall_event.summary <- (Rainsum[-1, ]) %>%
-#   select(Duration,
-#          Accumulation,
-#          max.intensity5) %>%
-#   summarise_all(funs(median, min, max), na.rm = TRUE)
-# #View(Rainfall_event.summary)
+# ## subset to provide additional hydrology analsis
+# RWH_event_analysis <- (RWHsum) %>%
+#   subset(Accumulation >= 5.0) 
+# #View(RWH_event_analysis)
+# 
+# # ## Summarise rainfall info
+# # Rainfall_event.summary <- (Rainsum[-1, ]) %>%
+# #   select(Duration,
+# #          Accumulation,
+# #          max.intensity5) %>%
+# #   summarise_all(funs(median, min, max), na.rm = TRUE)
+# # #View(Rainfall_event.summary)
 
+## Antecedant dry period analysis
+## Rainfall event delineation
+# Exstract from Drizzle0.9.5 + modified
+event <- TFC_RWH.m$event
+event[event != 0] <- NA
+ADP.index <- cumsum(diff(!is.na(c(NA, (event)))) > 0) + (0*event)
+# Create new dataset
+TFC_RWH.ADP <- TFC_RWH.m
+# Add ADP index as new variable
+TFC_RWH.ADP[, "ADP.index"] <- ADP.index
+#Replace rainfall NAs with zero
+TFC_RWH.ADP$ADP.index[is.na(TFC_RWH.ADP$ADP.index)] <- 0 
+# Confirm
+# View(TFC_RWH.ADP)
 
-
-
-
-
-
-
-
+## Summary of ADP
+ADP.sum <- (TFC_RWH.ADP) %>%
+  group_by(ADP.index) %>%
+  summarise(duation = (max(date.time) - min(date.time))) 
+#View(ADP.sum)
+# Range in days
+# 1.16-82.5
+# Median in days
+# 6.93
 
 
 
