@@ -182,7 +182,6 @@ tot.mon.plot <- (tot.mon.plot) %>%
   subset(date.time <= as.POSIXct("2017-11-22 12:00:00")) %>%
   melt(id = "date.time")
 # View(tot.mon.plot)
-
 # plot depths
 ggplot(data = tot.mon.plot)+
   geom_line(aes(x = date.time, y = value, color = variable))+
@@ -192,13 +191,52 @@ ggplot(data = tot.mon.plot)+
   scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days")+
   scale_y_continuous(sec.axis = sec_axis(~./1, name = "Rainfall (mm)"))
  
-# gplot(data = event.sum.2.3)+
-#   geom_boxplot(aes(x = Temperature_Location, y = Maximum.Temperature))+
-#   ggtitle("Maximum Event Temperatures")+
-#   theme(plot.title = element_text(hjust = 0.5))+
-#   scale_y_continuous(limits = c(5,30), expand = c(0,0)) +
-#   labs(x = "Temperature Location", y = "Temperature (°C)")
-# #geom_boxplot(aes(x = Temperature_Location, y = Temperature))
+## Plot temperature and rainfall
+tot.mon.plot2 <- (TFC_RWH.m) %>%
+  select(date.time,
+         Air.temp,
+         Bottom.temp,
+         Middle.temp,
+         Top.temp) 
+colnames(tot.mon.plot2) <- c("date.time",
+                            "Air",
+                            "Bottom",
+                            "Middle",
+                            "Top")
+
+# Prep plotting dataset
+tot.mon.plot2 <- (tot.mon.plot2) %>%
+  select(date.time,
+         Air,
+         Bottom,
+         Middle,
+         Top) %>%
+  subset(date.time <= as.POSIXct("2017-09-08 16:00:00") | date.time >= as.POSIXct("2017-09-08 20:00:00")) %>%
+  subset(date.time <= as.POSIXct("2017-10-04 12:00:00") | date.time >= as.POSIXct("2017-10-04 18:00:00")) %>%
+  subset(date.time <= as.POSIXct("2017-10-25 09:00:00") | date.time >= as.POSIXct("2017-10-25 15:00:00")) %>%
+  subset(date.time <= as.POSIXct("2017-11-22 12:00:00")) %>%
+  melt(id = "date.time")
+# View(tot.mon.plot2)
+# Dataset just for rainfall
+cum.rain <- (TFC_RWH.m) %>%
+  select(date.time,
+         rainfall) 
+colnames(cum.rain) <- c("date.time",
+                        "rainfall")
+# Replace rainfall NAs with zero
+cum.rain$rainfall <- (cum.rain$rainfall) %>%
+  replace_na(0) 
+cum.rain <- (cum.rain) %>%
+  mutate(Rainfall = cumsum(rainfall))
+# plot depths
+ggplot()+
+  geom_line(data = tot.mon.plot2, aes(x = date.time, y = value, color = variable))+
+  geom_line(data = cum.rain, aes(x = date.time, y = Rainfall/5))+
+  labs(x = "Date", y = "Temperature (°C)")+
+  theme(legend.position = "bottom", 
+        legend.title = element_blank())+
+  scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days")+
+  scale_y_continuous(sec.axis = sec_axis(~.*5, name = "Rainfall (mm)"))
 
 
 
