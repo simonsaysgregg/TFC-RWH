@@ -155,24 +155,50 @@ wilcox.test(RWH_event_pre1012$medbottemp, RWH_event_pre1012$medtoptemp, alternat
 
 ## Plot depth and rainfall
 tot.mon.plot <- (TFC_RWH.m) %>%
-  mutate(cumrain = cumsum(rainfall)) %>%
   select(date.time,
          Bottom.depth,
          Middle.depth,
          Top.depth,
-         cumrain) %>%
+         rainfall) 
+  colnames(tot.mon.plot) <- c("date.time",
+                               "Bottom",
+                               "Middle",
+                               "Top",
+                               "Rainfall")
+# Replace rainfall NAs with zero
+tot.mon.plot$Rainfall <- (tot.mon.plot$Rainfall) %>%
+  replace_na(0)
+# Prep plotting dataset
+tot.mon.plot <- (tot.mon.plot) %>%
+  mutate(Rainfall = cumsum(Rainfall)) %>%
+  select(date.time,
+         Bottom,
+         Middle,
+         Top,
+         Rainfall) %>%
   subset(date.time <= as.POSIXct("2017-09-08 16:00:00") | date.time >= as.POSIXct("2017-09-08 20:00:00")) %>%
   subset(date.time <= as.POSIXct("2017-10-04 12:00:00") | date.time >= as.POSIXct("2017-10-04 18:00:00")) %>%
+  subset(date.time <= as.POSIXct("2017-10-25 09:00:00") | date.time >= as.POSIXct("2017-10-25 15:00:00")) %>%
+  subset(date.time <= as.POSIXct("2017-11-22 12:00:00")) %>%
   melt(id = "date.time")
 # View(tot.mon.plot)
 
 # plot depths
 ggplot(data = tot.mon.plot)+
   geom_line(aes(x = date.time, y = value, color = variable))+
-  labs(x = "Date", y = "Depth (cm)")
-
-
-
+  labs(x = "Date", y = "Depth (cm)")+
+  theme(legend.position = "bottom", 
+        legend.title = element_blank())+
+  scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days")+
+  scale_y_continuous(sec.axis = sec_axis(~./1, name = "Rainfall (mm)"))
+ 
+# gplot(data = event.sum.2.3)+
+#   geom_boxplot(aes(x = Temperature_Location, y = Maximum.Temperature))+
+#   ggtitle("Maximum Event Temperatures")+
+#   theme(plot.title = element_text(hjust = 0.5))+
+#   scale_y_continuous(limits = c(5,30), expand = c(0,0)) +
+#   labs(x = "Temperature Location", y = "Temperature (°C)")
+# #geom_boxplot(aes(x = Temperature_Location, y = Temperature))
 
 
 
