@@ -27,6 +27,34 @@ require("ggmap")        # Plotting of maps same as you would with ggplot2
 require("maptools")     # Read, write, and handle Shapefiles in R
 require("mapdata")      # Supplement to maps package
 
+## User defined functions
+# Runoff estimation function
+runoff.in <- function(acc, CN, WA = 0.05968) {  # WA in acres
+  # convert accumulation to inches
+  acc.in <- acc * 3.94
+  # surface storage
+  S <- (1000/CN) - 10
+  # runoff units: inches
+  Q <- ((acc.in - (0.2 * S))^2)/(acc.in + (0.8 * S))
+  # conversion to volume: cubic feet
+  Q.vol <- Q * WA * (43560 / 12)
+  # conversion to cubic meters
+  Q.vol <- Q.vol * 0.0283
+  return(Q.vol)
+}
+
+# Orifice outflow calculation
+flow.outRWH <- function(bottom.depth, Cd = 0.51, center.diff = 206.4, inv.diff = 198.8, area.orf.m = 0.0090729, grav = 9.8, D = 0.49869) { 
+  ## modify following equaiton for outlet
+  # inv.diff == difference btw measurement point and invert 
+  # Hobo 198.8-cm below orifice outlet
+  # Hobo 206.4-cm below orifice outlet
+  # Else equation is in standard units and converted to metric
+
+  
+  ifelse(bottom.depth > center.diff, ((Cd * area.orf.m) * sqrt(2 * grav * (bottom.depth - center.diff))), ((((4.464 * Cd * D) * ((bottom.depth - inv.diff) * (0.394/12))^(1.5)) * 0.3048^(3))))     
+}
+
 ## Read data file
 # Data file has previous manipulations
 TFC_RWH.1 <- read.csv("./Working/TFC_RWH.DEL.csv")
@@ -62,8 +90,12 @@ TFC_RWH.m <- mutate(TFC_RWH.1, rainfall = (rainfall * 25.4),
                       Middle.temp = (Middle.temp - 32)/1.8, 
                       Middle.depth = (Middle.depth * 30.48), 
                       Top.temp = (Top.temp - 32)/1.8, 
-                      Top.depth = (Top.depth * 30.48))
+                      Top.depth = (Top.depth * 30.48),
+                      Outflow = flow.outRWH(Bottom.depth))
 #View(TFC_RWH.m)
+
+#Replace rainfall NAs with zero
+TFC_RWH.m$Outflow[is.nan(TFC_RWH.m$Outflow)] <- 0
 
 ## Split into list of events
 RWHevents <- split(TFC_RWH.m, TFC_RWH.m$event) 
@@ -85,17 +117,20 @@ RWHsum <- RWHevents %>%
                                  avemiddepth = mean(Middle.depth, na.rm = TRUE),
                                  medtoptemp = median(Top.temp, na.rm = TRUE), 
                                  maxtoptemp = max(Top.temp, na.rm = TRUE),
-                                 avetopdepth = mean(Top.depth, na.rm = TRUE))})
+                                 avetopdepth = mean(Top.depth, na.rm = TRUE),
+                                 varbot = var(Bottom.depth, na.rm = TRUE),
+                                 varmid = var(Middle.depth, na.rm = TRUE),
+                                 vartop = var(Top.depth, na.rm = TRUE))})
 # View(RWHsum)
 
 ## Breaking events into pre and post 
 ## subset to provide additional hydrology analsis
 RWH_event_pre1012 <- (RWHsum[-c(1),]) %>%
-  subset(Date <= "2017/10/12") 
+  subset(Date <= "2017/10/12" & Accumulation >= 2.38) 
 #View(RWH_event_pre1012)
 ## subset to provide additional hydrology analsis
 RWH_event_post1012 <- (RWHsum[-c(1),]) %>%
-  subset(Date >= "2017/10/12") 
+  subset(Date >= "2017/10/12" & Accumulation >= 2.38) 
 #View(RWH_event_post1012)
 
 ## Wilcoxon test
@@ -104,13 +139,27 @@ wilcox.test(RWH_event_pre1012$medbottemp, alternative = "t", mu = 21, paired = F
 # max bottom
 wilcox.test(RWH_event_pre1012$maxbottemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
 # median middle
-wilcox.test(RWH_event_pre1012$medmidtemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+wilcox.test(RWH_event_pre1012$medmidtemp, alternative = "g", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
 # max middle
-wilcox.test(RWH_event_pre1012$maxmidtemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+wilcox.test(RWH_event_pre1012$maxmidtemp, alternative = "g", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
 # median top
-wilcox.test(RWH_event_pre1012$medtoptemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+wilcox.test(RWH_event_pre1012$medtoptemp, alternative = "g", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
 # max top
-wilcox.test(RWH_event_pre1012$maxtoptemp, alternative = "t", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+wilcox.test(RWH_event_pre1012$maxtoptemp, alternative = "g", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+
+## Wilcoxon test
+# median bottom
+wilcox.test(RWH_event_post1012$medbottemp, alternative = "l", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# max bottom
+wilcox.test(RWH_event_post1012$maxbottemp, alternative = "l", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# median middle
+wilcox.test(RWH_event_post1012$medmidtemp, alternative = "l", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# max middle
+wilcox.test(RWH_event_post1012$maxmidtemp, alternative = "l", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# median top
+wilcox.test(RWH_event_post1012$medtoptemp, alternative = "l", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
+# max top
+wilcox.test(RWH_event_post1012$maxtoptemp, alternative = "l", mu = 21, paired = FALSE, conf.int = TRUE, conf.level = 0.95)
 
 ## box plots of pre-1012
 # median data
@@ -130,21 +179,66 @@ RWHpre1012max_box <- (RWH_event_pre1012) %>%
 
 # plot median temps
 ggplot(data = RWHpre1012med_box)+
-  geom_boxplot(aes(x = variable, y = value))+
-  scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
-  scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
-  labs(x = "Temperature Location", y = "Temperature (°C)")
+      geom_boxplot(aes(x = variable, y = value))+
+      geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+      scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
+      scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
+      theme(legend.position = "bottom", 
+            legend.title = element_blank())+
+      labs(x = "Temperature Location", y = "Temperature (°C)")
 
 
 # plot max temps
 ggplot(data = RWHpre1012max_box)+
+      geom_boxplot(aes(x = variable, y = value))+
+      geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+      scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
+      scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
+      theme(legend.position = "bottom", 
+            legend.title = element_blank())+
+      labs(x = "Temperature Location", y = "Temperature (°C)")
+
+
+## box plots of post-1012
+# median data
+RWHpost1012med_box <- (RWH_event_post1012) %>%
+  select(medbottemp,
+         medmidtemp,
+         medtoptemp) %>%
+  melt()
+#View(RWHpost1012med_box)
+# maximum data
+RWHpost1012max_box <- (RWH_event_post1012) %>%
+  select(maxbottemp,
+         maxmidtemp,
+         maxtoptemp) %>%
+  melt()
+#View(RWHpost1012max_box)
+
+# plot median temps
+ggplot(data = RWHpost1012med_box)+
   geom_boxplot(aes(x = variable, y = value))+
+  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
   scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
   scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank())+
   labs(x = "Temperature Location", y = "Temperature (°C)")
 
 
-## Difference between measurement depths
+# plot max temps
+ggplot(data = RWHpost1012max_box)+
+  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+  geom_boxplot(aes(x = variable, y = value))+
+  scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
+  scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank())+
+  labs(x = "Temperature Location", y = "Temperature (°C)")
+
+
+
+## Difference between measurement depths Pre
 # Median
 # bottom and middle
 wilcox.test(RWH_event_pre1012$medbottemp, RWH_event_pre1012$medmidtemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
@@ -152,6 +246,68 @@ wilcox.test(RWH_event_pre1012$medbottemp, RWH_event_pre1012$medmidtemp, alternat
 wilcox.test(RWH_event_pre1012$medmidtemp, RWH_event_pre1012$medtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
 # bottom and top
 wilcox.test(RWH_event_pre1012$medbottemp, RWH_event_pre1012$medtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# maximum
+# bottom and middle
+wilcox.test(RWH_event_pre1012$maxbottemp, RWH_event_pre1012$maxmidtemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# middle and top
+wilcox.test(RWH_event_pre1012$maxmidtemp, RWH_event_pre1012$maxtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# bottom and top
+wilcox.test(RWH_event_pre1012$maxbottemp, RWH_event_pre1012$maxtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# Variance
+# bottom and middle
+wilcox.test(RWH_event_pre1012$varbot, RWH_event_pre1012$varmid, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# middle and top
+wilcox.test(RWH_event_pre1012$varmid, RWH_event_pre1012$vartop, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# bottom and top
+wilcox.test(RWH_event_pre1012$varbot, RWH_event_pre1012$vartop, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+
+## Difference between measurement depths post
+# Median
+# bottom and middle
+wilcox.test(RWH_event_post1012$medbottemp, RWH_event_post1012$medmidtemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# middle and top
+wilcox.test(RWH_event_post1012$medmidtemp, RWH_event_post1012$medtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# bottom and top
+wilcox.test(RWH_event_post1012$medbottemp, RWH_event_post1012$medtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# maximum
+# bottom and middle
+wilcox.test(RWH_event_post1012$maxbottemp, RWH_event_post1012$maxmidtemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# middle and top
+wilcox.test(RWH_event_post1012$maxmidtemp, RWH_event_post1012$maxtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# bottom and top
+wilcox.test(RWH_event_post1012$maxbottemp, RWH_event_post1012$maxtoptemp, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# Variance
+# bottom and middle
+wilcox.test(RWH_event_post1012$varbot, RWH_event_post1012$varmid, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# middle and top
+wilcox.test(RWH_event_post1012$varmid, RWH_event_post1012$vartop, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# bottom and top
+wilcox.test(RWH_event_post1012$varbot, RWH_event_post1012$vartop, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+
+# # Variance by event
+# RWHvar <- (RWH_event_pre1012) %>%
+#   mutate(varbotT = var(medbottemp, na.rm = TRUE),
+#           varmidT = var(medmidtemp, na.rm = TRUE),
+#           vartopT = var(medtoptemp, na.rm = TRUE),
+#           varbotTT = var(maxbottemp, na.rm = TRUE),
+#           varmidTT = var(maxmidtemp, na.rm = TRUE),
+#           vartopTT = var(maxtoptemp, na.rm = TRUE))
+# #View(RWHvar)
+# 
+# # Variance Median
+# # bottom and middle
+# wilcox.test(RWHvar$varbotT, RWHvar$varmidT, alternative = "t", paired = TRUE)
+# # middle and top
+# wilcox.test(RWHvar$varmidT, RWHvar$vartopT, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# # bottom and top 
+# wilcox.test(RWHvar$varbotT, RWHvar$vartopT, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# # Variance Max
+# # bottom and middle
+# wilcox.test(RWHvar$varbotTT, RWHvar$varmidTT, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# # middle and top
+# wilcox.test(RWHvar$varmidTT, RWHvar$vartopTT, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
+# # bottom and top
+# wilcox.test(RWHvar$varbotTT, RWHvar$vartopTT, alternative = "t", paired = TRUE, conf.int = TRUE, conf.level = 0.95)
 
 ## Plot depth and rainfall
 tot.mon.plot <- (TFC_RWH.m) %>%
@@ -342,13 +498,103 @@ TFC_RWH.ADP$ADP.index[is.na(TFC_RWH.ADP$ADP.index)] <- 0
 ## Summary of ADP
 ADP.sum <- (TFC_RWH.ADP) %>%
   group_by(ADP.index) %>%
-  summarise(duation = (max(date.time) - min(date.time))) 
+  summarise(duation = (max(date.time) - min(date.time)),
+            maxbotD = max(Bottom.depth),
+            avgbotD = mean(Bottom.depth),
+            maxmidD = max(Middle.depth),
+            avgmidD = mean(Middle.depth),
+            maxtopD = max(Top.depth),
+            avgtopD = mean(Top.depth)) 
 #View(ADP.sum)
 # Range in days
 # 1.16-82.5
 # Median in days
 # 6.93
+## Approximated sensor depths
+#Top medians
+#99.9-cm
+#Middle median
+#147.8
+#Bottom median
+#198.8
+
+# Scatter plot of all medians and maximums
+tot.scat <- (RWHsum) %>%
+  subset(Accumulation >= 2.38)%>%
+  select(Date,
+         medbottemp,
+         maxbottemp,
+         medmidtemp,
+         maxmidtemp,
+         medtoptemp,
+         maxtoptemp) 
+colnames(tot.scat) <- c("Date",
+                        "Median Bottom",
+                        "Maximum Bottom",
+                        "Median Middle",
+                        "Maximum Middle",
+                        "Median Top",
+                        "Maximum Top")
+# View(tot.scat)
+# Melt data set
+tot.scat <- (tot.scat) %>%
+  melt(id = "Date")
+# Plot
+ggplot(data = tot.scat, aes(x = Date))+
+  geom_point(aes(y = value, shape = variable))+ 
+  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+  geom_vline(aes(xintercept = as.numeric(as.POSIXct("2017-10-12")), color = "Analysis Division"))+
+  scale_shape_manual(values = c(1,16,0,15,2,17))+
+  theme(legend.position = "bottom", 
+        legend.title = element_blank())+
+  scale_y_continuous(limits = c(5,30), expand = c(0,0))+
+  scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days", limits = c(as.POSIXct("2017-08-28"),as.POSIXct("2017-11-22")))+
+  labs(x = "Date", y = "Temperature (°C)")
+
+# Hydrology analysis
+# Returns a data frame of values same length as list
 
 
+RWHflow.ana <- TFC_RWH.m %>%
+  summarise(Accumulation = sum(rainfall, na.rm = TRUE),
+            Runoff.vol = runoff.in(Accumulation, CN = 98),
+            Outflow.vol = sum(Outflow, na.rm = TRUE),
+            frac.out = (Outflow.vol/Runoff.vol) * 100,
+            perc.red = ((Runoff.vol - Outflow.vol) / Runoff.vol) * 100)
+# View(RWHflow.ana)
+
+## Plot depth and rainfall
+lar.evt.plot <- (RWHevents$`20`) %>%
+  select(date.time,
+         Bottom.depth,
+         Middle.depth,
+         Top.depth,
+         rainfall) 
+colnames(lar.evt.plot) <- c("date.time",
+                            "Bottom",
+                            "Middle",
+                            "Top",
+                            "Rainfall")
+# Replace rainfall NAs with zero
+lar.evt.plot$Rainfall <- (lar.evt.plot$Rainfall) %>%
+  replace_na(0)
+# Prep plotting dataset
+lar.evt.plot <- (lar.evt.plot) %>%
+  mutate(Rainfall = cumsum(Rainfall)) %>%
+  select(date.time,
+         Bottom,
+         Middle,
+         Top,
+         Rainfall) %>%
+  melt(id = "date.time")
+# View(lar.evt.plot)
+# plot depths
+ggplot(data = lar.evt.plot)+
+  geom_line(aes(x = date.time, y = value, color = variable))+
+  labs(x = "Date", y = "Depth (cm)")+
+  theme(legend.position = "bottom", 
+        legend.title = element_blank())+
+  scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days")+
+  scale_y_continuous(sec.axis = sec_axis(~./1, name = "Rainfall (mm)"))
 
 
