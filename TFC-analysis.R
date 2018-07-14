@@ -368,7 +368,7 @@ tot.mon.plot2 <- (tot.mon.plot2) %>%
          Middle,
          Top) %>%
   subset(date.time <= as.POSIXct("2017-09-08 16:00:00") | date.time >= as.POSIXct("2017-09-08 20:00:00")) %>%
-  subset(date.time <= as.POSIXct("2017-10-04 12:00:00") | date.time >= as.POSIXct("2017-10-04 18:00:00")) %>%
+  subset(date.time <= as.POSIXct("2017-10-04 15:00:00") | date.time >= as.POSIXct("2017-10-04 18:00:00")) %>%
   subset(date.time <= as.POSIXct("2017-10-25 09:00:00") | date.time >= as.POSIXct("2017-10-25 15:00:00")) %>%
   subset(date.time <= as.POSIXct("2017-11-22 12:00:00")) %>%
   melt(id = "date.time")
@@ -388,6 +388,7 @@ cum.rain <- (cum.rain) %>%
 ggplot()+
   geom_line(data = tot.mon.plot2, aes(x = date.time, y = value, color = variable))+
   geom_line(data = cum.rain, aes(x = date.time, y = Rainfall/5, color = "Rainfall"))+
+  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
   labs(x = "Date", y = "Temperature (°C)")+
   theme(legend.position = "bottom", 
         legend.title = element_blank())+
@@ -401,7 +402,7 @@ ggplot()+
 #   select(date.time,
 #          Bottom.depth,
 #          Middle.depth,
-#          Top.depth) 
+#          Top.depth)
 # colnames(plot912) <- c("date.time",
 #                              "Bottom",
 #                              "Middle",
@@ -418,32 +419,34 @@ ggplot()+
 # # Dataset just for rainfall
 # cum.rain <- (TFC_RWH.m) %>%
 #   select(date.time,
-#          rainfall) 
+#          rainfall)
 # colnames(cum.rain) <- c("date.time",
 #                         "rainfall")
 # # Replace rainfall NAs with zero
 # cum.rain$rainfall <- (cum.rain$rainfall) %>%
-#   replace_na(0) 
+#   replace_na(0)
 # cum.rain <- (cum.rain) %>%
 #   mutate(Rainfall = cumsum(rainfall))%>%
-#   subset(date.time >= as.POSIXct("2017-09-19 00:00:00") & date.time <= as.POSIXct("2017-09-23 00:00:00")) 
+#   subset(date.time >= as.POSIXct("2017-09-19 00:00:00") & date.time <= as.POSIXct("2017-09-23 00:00:00"))
 # # plot depths
 # ggplot()+
 #   geom_line(data = plot912, aes(x = date.time, y = value, color = variable))+
 #   geom_line(data = cum.rain, aes(x = date.time, y = Rainfall*2.5, color = "Rainfall"))+
 #   labs(x = "Date", y = "Depth (cm)")+
-#   theme(legend.position = "bottom", 
+#   theme(legend.position = "bottom",
 #         legend.title = element_blank())+
 #   scale_x_datetime(date_labels = "%m/%d", date_breaks = "1 days")+
 #   scale_y_continuous(sec.axis = sec_axis(~./2.5, name = "Rainfall (mm)"))
 
-## Plot temperature and rainfall
+## Plot temperature maximum
 max.temp.plot <- (TFC_RWH.m) %>%
   select(date.time,
          Air.temp,
          Bottom.temp,
          Middle.temp,
-         Top.temp) 
+         Top.temp) %>%
+  subset(date.time >= as.POSIXct("2017-09-25 00:00:00") & date.time <= as.POSIXct("2017-10-07 18:00:00")) %>%
+  subset(date.time <= as.POSIXct("2017-10-04 15:00:00") | date.time >= as.POSIXct("2017-10-04 18:00:00")) 
 colnames(max.temp.plot) <- c("date.time",
                              "Air",
                              "Bottom",
@@ -456,7 +459,6 @@ max.temp.plot <- (max.temp.plot) %>%
          Bottom,
          Middle,
          Top) %>%
-  subset(date.time >= as.POSIXct("2017-09-25 16:00:00") & date.time <= as.POSIXct("2017-10-07 20:00:00")) %>%
   melt(id = "date.time")
 # View(max.temp.plot)
 # plot depths
@@ -465,6 +467,7 @@ ggplot()+
   labs(x = "Date", y = "Temperature (°C)")+
   theme(legend.position = "bottom", 
         legend.title = element_blank())+
+  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
   scale_x_datetime(date_labels = "%m/%d", date_breaks = "2 days")
 
 # ## subset to provide additional hydrology analsis
