@@ -597,4 +597,12 @@ ggplot(data = lar.evt.plot)+
   scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days")+
   scale_y_continuous(sec.axis = sec_axis(~./1, name = "Rainfall (mm)"))
 
-
+## How many events greater than 1in
+inch.st <- (RWHsum) %>%
+  subset(Accumulation >= 25.4)
+## Rainfall histogram
+rain.acc <- (RWHsum) %>%
+  select(Accumulation)
+ggplot(data = rain.acc, aes(x = Accumulation))+
+  geom_histogram(binwidth = 8.128)+
+  labs(x = "Rainfall Accumulation (mm)", y = "Discrete Events (count)")
