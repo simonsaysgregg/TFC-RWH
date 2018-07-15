@@ -97,8 +97,40 @@ TFC_RWH.m <- mutate(TFC_RWH.1, rainfall = (rainfall * 25.4),
 #Replace rainfall NAs with zero
 TFC_RWH.m$Outflow[is.nan(TFC_RWH.m$Outflow)] <- 0
 
+## Rainfall event delineation
+# Exstract from Drizzle0.9.5
+depth <- TFC_RWH.m$rainfall
+depth[depth == 0] <- NA
+nalocf <- function(x) na.locf(x, maxgap = 30, na.rm = FALSE)
+rain.index <- cumsum(diff(!is.na(c(NA, nalocf(depth)))) > 0) + nalocf(0*depth)
+
+## Addend rain index to file to be delineated
+TFC_RWH.m[,"rain.index"] <- rain.index
+
+## Runoff event delineation
+# Extend rain.idex for drawdown period of 1 hours in present case
+# to change drawdown change DD; depends of data interval (DD.in.hours*60)/data.interval.in.minutes
+runoff.del <- function(x, DD=30) {
+  l <- cumsum(! is.na(x))
+  c(NA, x[! is.na(x)])[replace(l, ave(l, l, FUN=seq_along) > DD, 0) + 1]
+}
+# vetor to process
+k <- TFC_RWH.m$rain.index
+# function operation
+TFC_RWH.m$storm.index <- runoff.del(k)
+
+## Replace NAs with zero
+# rain index
+TFC_RWH.m$rain.index <- (TFC_RWH.m$rain.index) %>%
+  replace_na(0)
+# View(TFC_RWH.m)
+# storm index
+TFC_RWH.m$storm.index <- (TFC_RWH.m$storm.index) %>%
+  replace_na(0)
+# View(TFC_RWH.m)
+
 ## Split into list of events
-RWHevents <- split(TFC_RWH.m, TFC_RWH.m$event) 
+RWHevents <- split(TFC_RWH.m, TFC_RWH.m$storm.index) 
 # Returns a list of events 
 # View(RWHevents)
 
@@ -120,7 +152,9 @@ RWHsum <- RWHevents %>%
                                  avetopdepth = mean(Top.depth, na.rm = TRUE),
                                  varbot = var(Bottom.depth, na.rm = TRUE),
                                  varmid = var(Middle.depth, na.rm = TRUE),
-                                 vartop = var(Top.depth, na.rm = TRUE))})
+                                 vartop = var(Top.depth, na.rm = TRUE),
+                                 Outflow.vol = sum(Outflow, na.rm = TRUE),
+                                 Runoff.vol = runoff.in(Accumulation, CN = 98))})
 # View(RWHsum)
 
 ## Breaking events into pre and post 
@@ -554,17 +588,7 @@ ggplot(data = tot.scat, aes(x = Date))+
   scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days", limits = c(as.POSIXct("2017-08-28"),as.POSIXct("2017-11-22")))+
   labs(x = "Date", y = "Temperature (°C)")
 
-# Hydrology analysis
-# Returns a data frame of values same length as list
 
-
-RWHflow.ana <- TFC_RWH.m %>%
-  summarise(Accumulation = sum(rainfall, na.rm = TRUE),
-            Runoff.vol = runoff.in(Accumulation, CN = 98),
-            Outflow.vol = sum(Outflow, na.rm = TRUE),
-            frac.out = (Outflow.vol/Runoff.vol) * 100,
-            perc.red = ((Runoff.vol - Outflow.vol) / Runoff.vol) * 100)
-# View(RWHflow.ana)
 
 ## Plot depth and rainfall
 lar.evt.plot <- (RWHevents$`20`) %>%
@@ -609,3 +633,24 @@ rain.acc <- (RWHsum) %>%
 ggplot(data = rain.acc, aes(x = Accumulation))+
   geom_histogram(binwidth = 8.128)+
   labs(x = "Rainfall Accumulation (mm)", y = "Discrete Events (count)")
+
+# Hydrology analysis
+# Returns a data frame of values same length as list
+RWHflow.ana <- RWHsum %>%
+  mutate(frac.out = (Outflow.vol/Runoff.vol) * 100,
+            perc.red = ((Runoff.vol - Outflow.vol) / Runoff.vol) * 100)
+#View(RWHflow.ana)
+
+## Thermal load reduction
+## runoff volumes and outflow estimations
+## median event temperatures pre/post 1012
+thermal.pre <- (RWHsum) %>%
+  select(Date,
+         Accumulation,
+         Runoff.vol,
+         Outflow.vol) %>%
+  subset(Date <= "2017/10/12" & Accumulation >= 2.38) %>%
+  mutate(In.therm = Runoff.vol * (median(RWH_event_pre1012$maxtoptemp + 273.15) * 1000 * 4.18),
+         Out.therm = Outflow.vol * (median(RWH_event_pre1012$maxtoptemp +273.15) * 1000 * 4.18),
+         therm.prec.red = (In.therm - Out.therm) / In.therm)
+#View(thermal.pre)
