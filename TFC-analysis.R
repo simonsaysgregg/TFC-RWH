@@ -535,7 +535,7 @@ TFC_RWH.ADP$ADP.index[is.na(TFC_RWH.ADP$ADP.index)] <- 0
 ## Summary of ADP
 ADP.sum <- (TFC_RWH.ADP) %>%
   group_by(ADP.index) %>%
-  summarise(duation = (max(date.time) - min(date.time)),
+  summarise(duration = difftime(max(date.time), min(date.time), units = "days"),
             maxbotD = max(Bottom.depth),
             avgbotD = mean(Bottom.depth),
             maxmidD = max(Middle.depth),
@@ -544,9 +544,9 @@ ADP.sum <- (TFC_RWH.ADP) %>%
             avgtopD = mean(Top.depth)) 
 #View(ADP.sum)
 # Range in days
-# 1.16-82.5
+#  0.03888889 16.37222222
 # Median in days
-# 6.93
+# 0.7854167
 ## Approximated sensor depths
 #Top medians
 #99.9-cm
