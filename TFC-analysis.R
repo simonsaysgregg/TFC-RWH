@@ -379,10 +379,11 @@ tot.mon.plot <- (tot.mon.plot) %>%
 # View(tot.mon.plot)
 # plot depths
 ggplot(data = tot.mon.plot)+
-  geom_line(aes(x = date.time, y = value, color = variable))+
+  geom_line(aes(x = date.time, y = value, color = variable, linetype = variable))+
   labs(x = "Date", y = "Depth (cm)")+
   theme(legend.position = "bottom", 
-        legend.title = element_blank())+
+        legend.title = element_blank(),
+        text = element_text(size =18))+
   scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days")+
   scale_y_continuous(sec.axis = sec_axis(~./1, name = "Rainfall (mm)"))
  
