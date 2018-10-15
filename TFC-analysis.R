@@ -214,23 +214,26 @@ RWHpre1012max_box <- (RWH_event_pre1012) %>%
 # plot median temps
 ggplot(data = RWHpre1012med_box)+
       geom_boxplot(aes(x = variable, y = value))+
-      geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+      geom_hline(aes(yintercept = 21, color = "Trout Threshold"), size =1)+
       scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
       scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
       theme(legend.position = "bottom", 
-            legend.title = element_blank())+
+            legend.title = element_blank(),
+            text = element_text(size = 24))+
       labs(x = "Temperature Location", y = "Temperature (°C)")
 
 
 # plot max temps
 ggplot(data = RWHpre1012max_box)+
       geom_boxplot(aes(x = variable, y = value))+
-      geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+      geom_hline(aes(yintercept = 21, color = "Trout Threshold"), size =1)+
       scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
       scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
       theme(legend.position = "bottom", 
-            legend.title = element_blank())+
+            legend.title = element_blank(),
+            text = element_text(size = 24))+
       labs(x = "Temperature Location", y = "Temperature (°C)")
+
 
 
 ## box plots of post-1012
@@ -252,22 +255,24 @@ RWHpost1012max_box <- (RWH_event_post1012) %>%
 # plot median temps
 ggplot(data = RWHpost1012med_box)+
   geom_boxplot(aes(x = variable, y = value))+
-  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+  geom_hline(aes(yintercept = 21, color = "Trout Threshold"), size =1)+
   scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
   scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
   theme(legend.position = "bottom", 
-        legend.title = element_blank())+
+        legend.title = element_blank(),
+        text = element_text(size = 24))+
   labs(x = "Temperature Location", y = "Temperature (°C)")
 
 
 # plot max temps
 ggplot(data = RWHpost1012max_box)+
-  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+  geom_hline(aes(yintercept = 21, color = "Trout Threshold"), size =1)+
   geom_boxplot(aes(x = variable, y = value))+
   scale_x_discrete(labels = c("Bottom", "Middle", "Top"))+
   scale_y_continuous(limits = c(10,30), expand = c(0,0)) +
   theme(legend.position = "bottom", 
-        legend.title = element_blank())+
+        legend.title = element_blank(),
+        text = element_text(size = 24))+
   labs(x = "Temperature Location", y = "Temperature (°C)")
 
 
@@ -420,14 +425,18 @@ cum.rain <- (cum.rain) %>%
   mutate(Rainfall = cumsum(rainfall))
 # plot depths
 ggplot()+
-  geom_line(data = tot.mon.plot2, aes(x = date.time, y = value, color = variable))+
-  geom_line(data = cum.rain, aes(x = date.time, y = Rainfall/5, color = "Rainfall"))+
-  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+  geom_line(data = tot.mon.plot2, aes(x = date.time, y = value, color = variable, linetype = variable), size = 1)+
+  geom_line(data = cum.rain, aes(x = date.time, y = Rainfall/5, color = "Rainfall", linetype = "Rainfall"), size = 1)+
+  geom_hline(aes(yintercept = 21, color = "Trout Threshold", linetype = "Trout Threshold"), size = 1)+
+  scale_colour_manual(values = brewer.pal(6, "Set1"), labels = c("Air", "Bottom", "Middle", "Rainfall", "Top", "Trout Threshold"))+
+  scale_linetype_manual(values = c(1,2,3,4,5,6), labels = c("Air", "Bottom", "Middle", "Rainfall", "Top", "Trout Threshold"))+
   labs(x = "Date", y = "Temperature (°C)")+
   theme(legend.position = "bottom", 
-        legend.title = element_blank())+
+        legend.title = element_blank(),
+        text = element_text(size = 18))+
   scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days")+
   scale_y_continuous(sec.axis = sec_axis(~.*5, name = "Rainfall (mm)"))
+
 
 
 # ## Plot September 21 event rainfall + depth
@@ -496,12 +505,15 @@ max.temp.plot <- (max.temp.plot) %>%
   melt(id = "date.time")
 # View(max.temp.plot)
 # plot depths
-ggplot()+
-  geom_line(data = max.temp.plot, aes(x = date.time, y = value, color = variable))+
-  labs(x = "Date", y = "Temperature (°C)")+
+ggplot(data = max.temp.plot)+
+  geom_line(aes(x = date.time, y = value, colour = variable, linetype = variable), size = 1)+
+  scale_colour_manual(values = brewer.pal(5, "Set1"), labels = c("Air", "Bottom", "Middle", "Top", "Trout Threshold"))+
+  scale_linetype_manual(values = c(1,2,3,4,5), labels = c("Air", "Bottom", "Middle", "Top", "Trout Threshold"))+
   theme(legend.position = "bottom", 
-        legend.title = element_blank())+
-  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
+        legend.title = element_blank(),
+        text = element_text(size = 18))+
+  labs(x = "Date", y = "Temperature (°C)")+
+  geom_hline(aes(yintercept = 21, color = "Trout Threshold", linetype = "Trout Threshold"), size = 1)+
   scale_x_datetime(date_labels = "%m/%d", date_breaks = "2 days")
 
 # ## subset to provide additional hydrology analsis
@@ -577,13 +589,16 @@ colnames(tot.scat) <- c("Date",
 tot.scat <- (tot.scat) %>%
   melt(id = "Date")
 # Plot
-ggplot(data = tot.scat, aes(x = Date))+
-  geom_point(aes(y = value, shape = variable))+ 
-  geom_hline(aes(yintercept = 21, color = "Trout Threshold"))+
-  geom_vline(aes(xintercept = as.numeric(as.POSIXct("2017-10-12")), color = "Analysis Division"))+
-  scale_shape_manual(values = c(1,16,0,15,2,17))+
+ggplot(data = tot.scat, aes(x = Date, y = value, shape = variable), size =1.5)+
+  geom_point()+ 
+  geom_hline(aes(yintercept = 21,  linetype = "Trout Threshold"), size =1)+
+  geom_vline(aes(xintercept = as.numeric(as.POSIXct("2017-10-12")), linetype = "Analysis Division"), size = 1)+
+  scale_shape_manual(values = c(1,16,0,15,2,17), labels = c("Median Bottom", "Maximum Bottom", "Median Middle", "Maximum Middle", "Median Top", "Maximum Top"))+
+  scale_color_manual(values = brewer.pal(6, "Set1"), labels = c( "Median Bottom", "Maximum Bottom", "Median Middle", "Maximum Middle", "Median Top", "Maximum Top"))+
+  scale_linetype_manual(values = c(1,2), labels = c("Analysis Division", "Trout Threshold"))+
   theme(legend.position = "bottom", 
-        legend.title = element_blank())+
+        legend.title = element_blank(),
+        text = element_text(size = 18))+
   scale_y_continuous(limits = c(5,30), expand = c(0,0))+
   scale_x_datetime(date_labels = "%m/%d", date_breaks = "10 days", limits = c(as.POSIXct("2017-08-28"),as.POSIXct("2017-11-22")))+
   labs(x = "Date", y = "Temperature (°C)")
