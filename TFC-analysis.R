@@ -666,52 +666,56 @@ RWHflow.anasumpre <- RWHflow.ana[-c(1),] %>%
             sumout = sum(Outflow.vol),
             sumin = sum(Runoff.vol))
 #View(RWHflow.anasumpre)
-RWHflow.anasumpost <- RWHflow.ana %>%
+RWHflow.anasumpost <- RWHflow.ana[-c(1),] %>%
   subset(Date >= "2017/10/12" & Accumulation >= 2.38) %>%
   summarise(med = median(perc.red),
             min = min(perc.red),
             max = max(perc.red),
+            cum = ((sumin - sumout) / sumin) * 100,
             sumout = sum(Outflow.vol),
             sumin = sum(Runoff.vol))
 #View(RWHflow.anasumpost)
+
+##Cummulative volume reduction
+# pre period 
+prepp <- RWHflow.anasumpre %>%
+  summarise(cum = ((sumin - sumout) / sumin) * 100)
+# View(prepp)
+# post period 
+postp <- RWHflow.anasumpost %>%
+  summarise(cum = ((sumin - sumout) / sumin) * 100)
+# View(postp)
+cumvolreduction <- (((RWHflow.anasumpre$sumin + RWHflow.anasumpost$sumin) - (RWHflow.anasumpre$sumout + RWHflow.anasumpost$sumout)) / (RWHflow.anasumpre$sumin + RWHflow.anasumpost$sumin)) * 100
+# cumvolreduction
+
 ## Thermal load reduction
 ## runoff volumes and outflow estimations
 ## median event temperatures pre/post 1012
-thermal.pre <- (RWHsum) %>%
-  select(Date,
-         Accumulation,
-         Runoff.vol,
-         Outflow.vol) %>%
-  subset(Date <= "2017/10/12" & Accumulation >= 2.38) %>%
-  mutate(In.therm = Runoff.vol * (median(RWH_event_pre1012$maxtoptemp + 273.15) * 1000 * 4.18),
-         Out.therm = Outflow.vol * (median(RWH_event_pre1012$maxtoptemp +273.15) * 1000 * 4.18),
+thermal.pre <- (RWH_event_pre1012) %>%
+  mutate(In.therm = (Runoff.vol * (medtoptemp + 273.15) * 1000 * 4.18),
+         Out.therm = (Outflow.vol * (medtoptemp +273.15) * 1000 * 4.18),
          therm.perc.red = (In.therm - Out.therm) / In.therm)
 #View(thermal.pre)
 ## median event temperatures pre/post 1012
-thermal.post <- (RWHsum) %>%
-  select(Date,
-         Accumulation,
-         Runoff.vol,
-         Outflow.vol) %>%
-  subset(Date >= "2017/10/12" & Accumulation >= 2.38) %>%
-  mutate(In.therm = Runoff.vol * (median(RWH_event_post1012$maxtoptemp + 273.15) * 1000 * 4.18),
-         Out.therm = Outflow.vol * (median(RWH_event_post1012$maxtoptemp +273.15) * 1000 * 4.18),
+thermal.post <- (RWH_event_post1012) %>%
+  mutate(In.therm = (Runoff.vol * (medtoptemp + 273.15) * 1000 * 4.18),
+         Out.therm = (Outflow.vol * (medtoptemp +273.15) * 1000 * 4.18),
          therm.perc.red = (In.therm - Out.therm) / In.therm)
 #View(thermal.post)
 # summary
 thermal.presum <- thermal.pre %>%
-  subset(Date <= "2017/10/12" & Accumulation >= 2.38) %>%
   summarise(med = median(therm.perc.red),
             min = min(therm.perc.red),
             max = max(therm.perc.red),
             sumout = sum(Out.therm),
-            sumin = sum(In.therm))
+            sumin = sum(In.therm),
+            cum = (sumin - sumout) / sumin)
 #View(thermal.presum)
 thermal.postsum <- thermal.post %>%
-  subset(Date >= "2017/10/12" & Accumulation >= 2.38) %>%
   summarise(med = median(therm.perc.red),
             min = min(therm.perc.red),
             max = max(therm.perc.red),
             sumout = sum(Out.therm),
-            sumin = sum(In.therm))
+            sumin = sum(In.therm),
+            cum = (sumin - sumout) / sumin)
 #View(thermal.postsum)
